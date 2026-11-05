@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.4.0] – 2026-11-05
+
+### Changed
+
+- The plugin now decides when the header slides away, for every sticky header, instead of leaving it to Ollie Pro. The header slides away past its own height rather than at a fixed 100px, and comes back on the first scroll up of 4px or more. Ollie Pro's *Hide in Scroll Down* toggle stays the on/off switch.
+- On the way down a transparent header keeps its appearance until it has slid out of sight, changes while hidden, and comes back opaque. It no longer turns solid at a fixed depth just before sliding away, which read as a flicker. A header that cannot slide away turns opaque at the threshold as before.
+- The threshold is now 24px, up from 20px.
+- **Opening a menu no longer turns the header solid.** The appearance follows the scroll position alone, so a panel opening over a dark hero hangs under a dark bar. A site that relied on the header as the panel's backdrop needs its own rule against `[aria-expanded="true"]`.
+- `is-scrolled` is now also set on solid sticky headers, once the page has left the top. A rule that targets `.is-scrolled` without `.has-transparent-header` now matches those too.
+- The text colour now fades along with the background and the shadow.
+- The mega menu panel now hangs from the header's bottom edge at every width and under solid sticky headers too, not only over a transparent header on desktop.
+
+### Added
+
+- While a menu is open or the keyboard is inside the header it stays in view, and focus entering it brings it back. Tabbing into a hidden header used to leave the focus off-screen, behind the page.
+- While the header shows, the page's scroll padding equals its height, published as `--kntnt-header-visible-height`, so neither focus nor an anchor target ends up under it. An anchor target that should land flush with the window's top can undo it with a negative `scroll-margin-top`.
+- A sticky header casts no shadow while no page content lies under it.
+- With reduced motion the slide and the fade happen at once.
+- On paper the header is the page's first part, in its opaque appearance, without its menus and buttons.
+- A test suite for the slide and appearance decisions, run with `composer test`.
+
+### Removed
+
+- The mega menu panel's fade on the header's timing. The header no longer fades when a panel opens, so there is nothing to keep it in step with, and the panel keeps Ollie Menu Designer's own fade.
+
 ## [0.3.0] – 2026-07-17
 
 ### Changed
@@ -34,7 +59,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Self-updating from the project's GitHub releases: the plugin appears under *Dashboard → Updates* like any other, checking the repository named by its own `Plugin URI` header at most once every six hours. A release is only offered when it carries a ZIP asset served from GitHub's own download hosts, so a tampered header cannot redirect the update installer at an attacker's package. Update checks run under every theme, unlike the header feature – a site parked on another theme must not rot on an old version.
 - `build-release-zip.sh`, which builds a release zip containing only runtime files, and can create or update the GitHub release and upload the asset. The asset name carries no version segment, keeping the `latest/download` URL stable.
 
-[Unreleased]: https://github.com/Kntnt/kntnt-transparent-header-ollie/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Kntnt/kntnt-transparent-header-ollie/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Kntnt/kntnt-transparent-header-ollie/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Kntnt/kntnt-transparent-header-ollie/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Kntnt/kntnt-transparent-header-ollie/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Kntnt/kntnt-transparent-header-ollie/releases/tag/v0.1.0

@@ -16,9 +16,12 @@ It is for anyone running Ollie and Ollie Pro who wants that effect without writi
 ### Key features
 
 - **Transparent over the hero.** At the top of the page the header has no background and no shadow. Your hero image starts at the very top of the screen.
-- **Fades to your own colour.** Scroll past 20 pixels and the header fades back to the background colour *you* chose in the Site Editor. The plugin ships no colours of its own and never overrides your design.
-- **Solid behind open menus.** Open a mega menu or the mobile menu and the header turns solid immediately, so the panel has a backdrop instead of floating over the picture.
-- **Mega menus arrive with the header.** When an [Ollie Menu Designer](https://olliewp.com/menu-designer/) mega menu opens over the transparent header, its panel fades in on the header's own timing and hangs flush against it – no snap ahead of the colour, and no bright seam where the two meet.
+- **No flicker on the way down.** The header keeps its look until it has slid out of sight, changes while hidden, and comes back in the background colour *you* chose in the Site Editor. Back above 24 pixels it turns transparent again. The plugin ships no colours of its own and never overrides your design.
+- **Menus leave it alone.** Opening a mega menu or the mobile menu changes nothing about the header: its appearance follows the scroll position alone.
+- **Slides away at the right moment.** Past the header's own height rather than a fixed distance, and back on the first scroll up of 4 pixels or more. It stays while a menu is open or the keyboard is inside it, and focus entering it brings it back.
+- **Nothing hides behind it.** While the header shows, the page's scroll padding equals its height, so neither keyboard focus nor an anchor target ends up under it.
+- **Mega menus hang flush.** An [Ollie Menu Designer](https://olliewp.com/menu-designer/) mega menu hangs from the header's bottom edge at every width, under transparent and solid sticky headers alike.
+- **Reduced motion and print.** With reduced motion the slide and the fade happen at once. On paper the header is the page's first part, in its opaque look, without its menus and buttons.
 - **No flash on page load.** The header is transparent from the very first frame, not solid-then-corrected.
 - **Fixes two Ollie Pro bugs** along the way (see [Why you can't simplify this](#why-you-cant-simplify-this)).
 - **No settings page.** One class in the Site Editor is the whole configuration.
@@ -69,7 +72,7 @@ Two steps in the Site Editor. No CSS required.
 
 4. Ollie Pro's controls now appear under Position:
 
-   1. *Hide in Scroll Down:* Check — this one is required. Without it, Ollie Pro writes an inline `position: sticky` onto the header, which the plugin's stylesheet can't override, so the header stays solid and never goes transparent.
+   1. *Hide in Scroll Down:* Check — this one is required. Without it, Ollie Pro writes an inline `position: sticky` onto the header, which the plugin's stylesheet can't override, so the header stays solid and never goes transparent. It is also the on/off switch for sliding away, though this plugin decides when that happens.
 
    2. *Top Offset:* 0
 
@@ -143,14 +146,15 @@ Found a bug or want to request a feature? Please [open an issue](https://github.
 
 ## Extending
 
-Everything below is for developers who want to push the effect further. The plugin has no filters and no API – it is two CSS classes and a stylesheet, so you extend it by writing CSS against those classes, in **Styles → Additional CSS** in the Site Editor or in a child theme's `theme.json` under `styles.css`.
+Everything below is for developers who want to push the effect further. The plugin has no filters and no API – it is CSS classes and a stylesheet, so you extend it by writing CSS against those classes, in **Styles → Additional CSS** in the Site Editor or in a child theme's `theme.json` under `styles.css`.
 
-The public contract is exactly two classes:
+The public contract is two classes and a custom property:
 
-| Class | Who sets it |
+| Name | Who sets it |
 |---|---|
 | `has-transparent-header` | You, on the Template Part block |
-| `is-scrolled` | The plugin, on the header group, once scrolled past 20px |
+| `is-scrolled` | The plugin, on the header group, while the header is opaque with page content under it. On a transparent header that is its solid appearance. On a solid sticky header it means the page has left the top |
+| `--kntnt-header-visible-height` | The plugin, on the root element: how much of the window's top the header covers, `0px` while it is slid away. The stylesheet uses it as the page's scroll padding. An anchor target that should land flush with the window's top despite it can take `scroll-margin-top: calc(-1 * var(--kntnt-header-visible-height))` |
 
 ### Colouring the header's contents against the hero
 
@@ -172,11 +176,9 @@ The plugin's default is all-or-nothing: fully transparent at the top, your colou
 **20% at the top, 90% when scrolled:**
 
 ```css
-/* Top state. Mirror the plugin's own selector, open-menu condition and all, or
-   the header will keep your tint while a mega menu hangs open over the hero.
-   `!important` is unavoidable: core emits the block's own preset background as
-   `.has-<slug>-background-color { background-color: … !important }`. */
-header.has-transparent-header > .wp-block-group:not(.is-scrolled):not(:has([aria-expanded="true"])) {
+/* Top state. `!important` is unavoidable: core emits the block's own preset
+   background as `.has-<slug>-background-color { background-color: … !important }`. */
+header.has-transparent-header > .wp-block-group:not(.is-scrolled) {
   background-color: color-mix(in srgb, var(--wp--preset--color--primary) 20%, transparent) !important;
 }
 
@@ -204,8 +206,7 @@ The reverse case (loading a page that is already scrolled) renders transparent f
 
 ### Known limits
 
-- **The hide threshold is 100px and hardcoded** in Ollie Pro (`SCROLL_TOP_THRESHOLD`, no filter). Changing it means not using ‘Hide on Scroll Down’ and writing hide/show yourself.
-- **The solid threshold is 20px and hardcoded** in this plugin (`SOLID_THRESHOLD` in `js/header.js`). There is no filter for it; change it in a fork if you must.
+- **The opaque threshold is 24px and the jitter 4px**, both hardcoded in this plugin (`OPAQUE_THRESHOLD` and `JITTER` in `js/header.js`). There is no filter for them; change them in a fork if you must.
 - **The header is in the flow when solid** (`position: sticky`) but **out of the flow when transparent** (`position: fixed`). That is deliberate – it cannot lie over the hero otherwise – and it is why no spacer is needed.
 
 ### Troubleshooting
@@ -240,30 +241,31 @@ This section is for developers reading the code – whether to satisfy your curi
 
 ### Why you can't simplify this
 
-The whole plugin is a short stylesheet and three small scripts. Every rule looks naive or removable, and every one is load-bearing. The obvious cleanup is listed against each, because that cleanup is how each bug gets reintroduced.
+The whole plugin is a short stylesheet and three scripts. Every rule looks naive or removable, and every one is load-bearing. The obvious cleanup is listed against each, because that cleanup is how each bug gets reintroduced.
 
 | Rule | The tempting ‘fix’ | What it costs |
 |---|---|---|
-| `--sticky-full-offset: var(--wp-admin--admin-bar--height, 0px)` | Delete it – nothing references it in this codebase. | Ollie Pro hides the header with `translateY(calc(-100% - var(--sticky-full-offset)))` but only sets that variable when a Top Offset is configured, while Ollie pins the header down by the admin bar's height regardless. The header then stops exactly that far short of the top. The admin bar masks the leftover band while it is fixed, but at 600px and below core makes it `absolute` and it scrolls away – leaving a logged-in visitor a 46px strip of header stuck to the top of the screen. Measured, not theorised. |
-| `transition-property: transform, background-color, box-shadow` | Collapse it into the `transition` shorthand. | The shorthand resets Ollie Pro's own `transition: transform …` at equal specificity, and the header snaps instead of sliding. The longhand overrides only the property list, so duration and timing stay inherited from Ollie Pro's rule and the fade cannot drift out of step with the slide. |
+| `--sticky-full-offset: var(--wp-admin--admin-bar--height, 0px)` | Fold it into the `.is-away` rule, its only reader in this codebase. | The slide away is `translateY(calc(-100% - var(--sticky-full-offset)))`, as in Ollie Pro, which only sets that variable when a Top Offset is configured, while Ollie pins the header down by the admin bar's height regardless. A Top Offset must still win, so the variable stays a variable. The header then stops exactly that far short of the top. The admin bar masks the leftover band while it is fixed, but at 600px and below core makes it `absolute` and it scrolls away – leaving a logged-in visitor a 46px strip of header stuck to the top of the screen. Measured, not theorised. |
+| `transform: none` on `:not(.is-away)`, and the `.is-away` rule | Delete both and let Ollie Pro's `.is-sticky-hidden` move the header – it already does. | Ollie Pro hides at a fixed 100px whatever the header's height, and knows nothing of focus or open panels: tabbing into a hidden header leaves the focus off-screen. Its script cannot be switched off without losing the toggle this plugin hangs on, so its classes keep being set and are made inert here. `none` rather than `translateY(0)`, because any transform makes the group the containing block of every fixed element inside it. |
+| `z-index: 100 !important` on the header | Delete it – the theme's sticky rule already says 100. | Ollie Pro's script writes `z-index: -1` inline once *its* hide has finished. A header brought back by focus would then sit behind the page while Ollie Pro still thinks it hidden. Only `!important` beats an inline style. |
+| a timer for ‘the slide has finished’ | Use `transitionend`. | With reduced motion there is no transition to end, and a resize can cancel one that has begun. Either would leave a hidden header transparent, so it would come back transparent over the page's content. |
+| `transition-property: transform, background-color, box-shadow, color` | Collapse it into the `transition` shorthand. | The shorthand resets Ollie Pro's own `transition: transform …` at equal specificity, and the header snaps instead of sliding. The longhand overrides only the property list, so duration and timing stay inherited from Ollie Pro's rule and the fade cannot drift out of step with the slide. |
 | `position: fixed` on `.has-transparent-header` | Add `!important` to make it win. | It already wins, and not by specificity: Ollie's sticky rule ties it exactly at (0,2,2). It wins on source order alone – which is why the stylesheet is enqueued at priority 20 with a dependency on the `ollie` handle. Change either and the header goes back to `sticky`, in the flow, pushing the hero down. `!important` would paper over that and hide the real dependency. |
 | `top: var(--kntnt-admin-bar-offset, …)` on `.has-transparent-header`, fed by `admin-bar-offset.js` | Replace it with a static `calc(var(--wp-admin--admin-bar--height))` – the solid header's reset uses a static value, so why not this one. | The solid header is `sticky`, so a static `top` works: in the flow it tucks under the bar by itself. This one is `fixed`, so a static value is wrong at one end – `46px` strands it below an empty band once the admin bar has scrolled out at ≤600px (core makes it `absolute` there but never zeroes `--wp-admin--admin-bar--height`); `0px` overlaps the bar at the very top. The correct offset is the bar's visible bottom edge, which depends on scroll position – the one thing CSS cannot read. So the script measures it (`getBoundingClientRect().bottom`, clamped at 0) into the variable, and CSS consumes it. The fallback keeps the static height before the script runs, with no JS, and for every logged-out visitor. |
 | loading `admin-bar-offset.js` only when `is_admin_bar_showing()`, and only working below 600px | Merge it into `header.js` and drop the guards – one script is simpler than two. | The offset only exists while an admin bar does, which is a logged-in concern; `header.js`'s `is-scrolled` job is needed for *every* visitor. Merge them and every public visitor downloads code that can never run for them – and it lands in the very bundle a cache plugin minifies and combines, whereas a logged-in-only script is left alone. Above 600px the admin bar is fixed and the offset is the constant the fallback already resolves, so the script attaches its scroll listener only below 600px (`matchMedia`) and clears the variable above it. The server can't see the viewport width at request time, so this is as far as loading can be narrowed. |
 | `@media (max-width: 600px) { header:not(.has-transparent-header):has(> [data-sticky-on-scroll-up]) { top: 0 } }` | Delete it – the Ollie *theme* already ships a `top: 0` reset for narrow screens, so this looks redundant. | The theme's reset is dead code. Its selector `header:has(> .is-position-sticky)` (0,1,1) is outweighed by the theme's own unscoped base rule `body:not(.wp-admin) header:has(> .is-position-sticky)` (0,2,2), and media queries add no specificity – so `top` stays at the admin bar's height. At 600px and below core makes the admin bar `absolute` and it scrolls off with the page, leaving the header resting 46px below the top with an empty band above it. This rule reinstates the intended reset with a selector heavy enough to win (0,4,2). Pure CSS suffices because the header is `sticky`: `top: 0` tucks it under the bar in the flow at the very top and sits it flush once stuck. It excludes `.has-transparent-header`, which is `fixed` and sets its own `top` in the rule above. |
-| `background-color: transparent !important` on `:not(.is-scrolled):not(:has([aria-expanded="true"]))` | Drop the `!important`, or drop the `:has()` clause. | The `!important` is not defensiveness: core emits the group's own preset background as `.has-<slug>-background-color { background-color: … !important }`, which nothing without `!important` can beat. Drop the `:has()` clause and an open mega menu or mobile menu hangs over the hero with no backdrop behind it. The clause asks *‘nothing is open’* rather than *‘something is closed’* deliberately: the latter needs a closed element to exist, so a header with no menu at all would never go transparent, and with several toggles a single closed one would keep the header transparent while another stands open. |
+| `background-color: transparent !important` on `:not(.is-scrolled)` | Drop the `!important`, or turn the header solid while a menu is open. | The `!important` is not defensiveness: core emits the group's own preset background as `.has-<slug>-background-color { background-color: … !important }`, which nothing without `!important` can beat. A header that turns solid when a menu opens is a switch the reader did not ask for, and the most disturbing one for a small panel. The appearance follows the scroll position alone. |
+| `is-scrolled` waiting for the slide to finish | Add it at the threshold, as the name suggests. | The header would turn opaque just before sliding away, which reads as a flicker. |
 | the `is-scrolled` toggle in `js/header.js` | Have it add `is-transparent` instead – it reads more naturally. | A script-set class cannot exist at first paint, so every page load would render solid, then fade to transparent: a visible flash. Transparency has to be the *default*, i.e. the absence of a class. See [Why the transparent state has no class of its own](#why-the-transparent-state-has-no-class-of-its-own). |
-| the mega menu panel's `transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) …` | Delete it – Ollie Menu Designer already animates the panel, so re-declaring the transition is redundant. | Ollie fades the panel in over ~100ms; this plugin fades the header's background in over 300ms. Over a transparent header the panel snaps in while the header colour is still catching up behind it – they arrive at visibly different moments. Matching the panel's opacity transition to the header's, same duration and easing, makes them read as one surface arriving together. Both are copied from Ollie Pro's slide because CSS cannot read another element's transition timing; the header and the panel must always share the number. |
-| `top: var(--kntnt-mega-menu-top, 100%) !important` on the panel, fed by `js/mega-menu-offset.js` | Drop it – let Ollie place the panel where its *Top spacing* setting says. | Ollie measures the panel's top from the nav item it belongs to, which sits inside the header's vertical padding, so the panel overlaps the header by a narrow band. Both carry the same colour, so during the fade two semi-transparent copies of it composite to something brighter than either and a bright band flashes across the header's lower edge – and syncing the two fades (the row above) is exactly what makes them semi-transparent at the same instant and reveals it. Hanging the panel from the header's rendered bottom edge removes the overlap, and with it the band. That edge is per-site and per-design and CSS cannot read it, so the script measures it into the variable; `!important` beats the inline `top` Ollie's own block script writes, and the custom-property indirection keeps that script from clobbering the position on resize. |
+| `top: var(--kntnt-mega-menu-top, 100%) !important` on the panel, fed by `js/mega-menu-offset.js` | Drop it – let Ollie place the panel where its *Top spacing* setting says. | Ollie measures the panel's top from the nav item it belongs to, which sits inside the header's vertical padding, so the panel overlaps the header by a narrow band, and on a phone, where the setting is cleared, covers it. Hanging the panel from the header's rendered bottom edge removes the overlap. That edge is per-site and per-design and CSS cannot read it, so the script measures it into the variable; `!important` beats the inline `top` Ollie's own block script writes, and the custom-property indirection keeps that script from clobbering the position on resize. |
 
 ### Why some of those rules aren't scoped to the class
 
 Transparent mode is opt-in per template, so every rule that implements it is scoped to `header.has-transparent-header`. On a template that never opted in, the plugin changes nothing.
 
-Three rules in the table break that pattern on purpose, because the defects they repair have nothing to do with transparency. Two – `--sticky-full-offset` and the transition property list – key off `.wp-block-group[data-sticky-on-scroll-up="true"]`, reaching *every* sticky header, transparent or not. The third – the `top: 0` reset – reaches every *solid* sticky header, explicitly excluding `.has-transparent-header`, which is `fixed` and positions itself. Scope any of them to the transparent class and the admin-bar defects come back on the solid headers across the site – bugs the plugin already fixes. It is also why the stylesheet is enqueued on every page rather than only the transparent ones.
+The rest of the table breaks that pattern on purpose, because what it does has nothing to do with transparency. `--sticky-full-offset` and the transition property list key off `.wp-block-group[data-sticky-on-scroll-up="true"]`. Sliding away, the `z-index`, the scroll padding, the shadow at the top, the panel's `top`, reduced motion and print key off that group directly inside a `<header>`. All of them reach *every* sticky header, transparent or not. The `top: 0` reset reaches every *solid* sticky header, explicitly excluding `.has-transparent-header`, which is `fixed` and positions itself. Scope any of them to the transparent class and a solid header on the same site loses the fix. It is also why the stylesheet and the header script are enqueued on every page rather than only the transparent ones.
 
-Unscoped is not the same as intrusive, and none of them can touch a design it wasn't asked to. The first only defines a custom property that Ollie Pro already reads and would otherwise leave unset: nothing that doesn't read it can see it. The second only extends a transition property list; on a solid header neither `background-color` nor `box-shadow` ever changes, so it animates nothing. The third only reinstates a `top: 0` the Ollie theme already ships for narrow screens but mis-specifies, so it changes nothing that wasn't already meant to be flush.
-
-One consequence is worth naming, because it is easy to misread the other way: the first two never mention the `header` tag, and the third names it only to reach Ollie's existing solid `<header>`. None of them add a requirement to your markup. The [`<header>` requirement](#2-turn-on-transparent-mode) comes from the transparent-mode rules and from Ollie's own sticky rule – not from these.
+Unscoped is not the same as intrusive, and none of them can touch a design it wasn't asked to: no colour, spacing or type comes from any of them. They need Ollie Pro's *Hide in Scroll Down* on the group, so a header without that toggle is untouched.
 
 ### Project layout
 
@@ -272,13 +274,14 @@ kntnt-transparent-header-ollie.php   Plugin header, PHP guard, bootstrap
 autoloader.php                           PSR-4 → classes/
 classes/Plugin.php                       Singleton; theme check and asset wiring
 classes/Updater.php                      Self-update from GitHub releases
-css/header.css                           The five rules. Ships no styling
-js/header.js                             Toggles is-scrolled
+css/header.css                           The rules. Ships no styling
+js/header.js                             Decides the slide and the appearance
 js/admin-bar-offset.js                   Pins the transparent header below the
                                          admin bar (logged-in only, below 600px)
 js/mega-menu-offset.js                   Hangs the mega menu panel flush with
-                                         the header's bottom edge (desktop)
+                                         the header's bottom edge
 languages/                               Translation template
+test/                                    Tests for the decisions in header.js
 agents.d/coding-standard/                The coding standard, by language
 AGENTS.md                                Entry point for AI assistants; also
                                          the fastest orientation for humans

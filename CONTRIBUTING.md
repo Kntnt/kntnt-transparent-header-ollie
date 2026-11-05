@@ -74,14 +74,15 @@ Do not edit `CHANGELOG.md` or the `Version:` header yourself. The maintainer rec
 ## Quality gates
 
 ```bash
-composer gate      # both of the below, in order
+composer gate      # all of the below, in order
 composer phpcs     # WordPress Coding Standards, with the documented deviations
 composer phpstan   # static analysis at level max, and the PHP floor
+composer test      # the decisions in js/header.js, with Node's own test runner
 composer phpcbf    # fixes most violations automatically
 shellcheck build-release-zip.sh
 ```
 
-Both gates must be **clean** before you open a pull request.
+All of them must be **clean** before you open a pull request.
 
 `composer phpcs` must be **silent** – no errors and no warnings. Warnings fail the gate too, so anything it prints is a real finding, not noise to look past. Suppressing a finding needs a `phpcs:ignore` that names the sniff and gives the reason, at the smallest possible scope; there are currently none in the codebase, and that is the preferred state.
 
@@ -91,7 +92,7 @@ Both gates must be **clean** before you open a pull request.
 
 Two of the unenforced rules are mechanical enough that a sniff *could* catch them, and one is planned for each: a comment on its own line stops at column 80 ([#37](https://github.com/Kntnt/kntnt-code-skills/issues/37)), and `=`/`=>` are never vertically aligned ([#38](https://github.com/Kntnt/kntnt-code-skills/issues/38)). Until those exist, aligned `=>` passes this gate in silence. Code lines, on the other hand, have no length limit at all – a long line is preferred over breaking arguments apart to satisfy a column count.
 
-There is deliberately **no test suite**. The plugin's only logic is deciding when to enqueue two files, so there is nothing a unit test could meaningfully constrain that the two gates and a browser do not. If you add real logic, say so in the pull request and we will add tests with it.
+The test suite is deliberately small. It covers the two pure decisions in `js/header.js`, when to slide and when to be transparent, because a mistake there is easy to make and hard to see. Everything else is the cascade and the browser, so check it in a browser against a real Ollie site: scrolling both ways, a menu open, the keyboard in the header, reduced motion and print, at desktop and phone width.
 
 ## Coding and writing standards
 

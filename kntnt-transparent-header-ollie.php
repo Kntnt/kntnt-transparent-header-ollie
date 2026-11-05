@@ -3,7 +3,7 @@
  * Plugin Name:       Kntnt Transparent Header for Ollie
  * Plugin URI:        https://github.com/Kntnt/kntnt-transparent-header-ollie
  * Description:       Adds a transparent-over-hero mode to Ollie Pro's hide-on-scroll-down sticky header.
- * Version:           0.3.0
+ * Version:           0.4.0
  * Requires at least: 6.5
  * Requires PHP:      8.3
  * Requires Plugins:  ollie-pro
