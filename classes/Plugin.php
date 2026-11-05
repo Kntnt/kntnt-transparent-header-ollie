@@ -221,9 +221,8 @@ final class Plugin {
 	/**
 	 * Enqueues the frontend stylesheet and scripts.
 	 *
-	 * The stylesheet and the `is-scrolled` script load on every page, not only
-	 * the transparent ones: the stylesheet also carries fixes that apply to
-	 * every sticky header. The admin-bar offset script loads only when an admin
+	 * The stylesheet and the header script load on every page, not only the
+	 * transparent ones: both also serve solid sticky headers. The admin-bar offset script loads only when an admin
 	 * bar is showing, which is a logged-in concern – the offset means nothing
 	 * without a bar, and keeping the script off public pages also keeps it clear
 	 * of the caching and minification those pages get but logged-in ones do not.
@@ -259,11 +258,11 @@ final class Plugin {
 		);
 
 		// Feeds the mega menu panel's top the header's live bottom edge so the
-		// panel hangs flush instead of overlapping the header, which would flash
-		// a bright band during the fade. Loads for every visitor, like the
-		// stylesheet and the is-scrolled script: the band is visible to anyone,
-		// logged in or not. The script self-guards, doing nothing on a page with
-		// no transparent header or no mega menu.
+		// panel hangs flush instead of overlapping the header, or covering it on
+		// a phone. Loads for every visitor, like the stylesheet and the header
+		// script: the panel opens for anyone, logged in or not. The script
+		// self-guards, doing nothing on a page with no sticky header or no mega
+		// menu.
 		wp_enqueue_script(
 			self::HANDLE . '-mega-menu-offset',
 			plugins_url( 'js/mega-menu-offset.js', self::$plugin_file ),

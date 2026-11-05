@@ -36,9 +36,11 @@
         "phpcbf": "phpcbf --standard=phpcs.xml.dist",
         "build": "bash build-release-zip.sh",
         "phpstan": "phpstan analyse --memory-limit=1G",
+        "test": "node --test test/",
         "gate": [
             "@phpcs",
-            "@phpstan"
+            "@phpstan",
+            "@test"
         ]
     },
     "minimum-stability": "stable",

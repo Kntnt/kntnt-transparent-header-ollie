@@ -11,7 +11,7 @@ Each works around a bug in the named product, written up as an upstream report. 
 | `--sticky-full-offset: var(--wp-admin--admin-bar--height, 0px)` (`css/header.css`) | **Ollie Pro** leaves this variable unset unless a *Top Offset* is configured, so its own hide-on-scroll-up header doesn't translate fully off-screen and leaves a strip at ≤600px. | Ollie Pro sets `--sticky-full-offset` itself. Check: a hide-on-scroll header with no Top Offset, ≤600px, logged in — scroll down; the header hides with no leftover strip. |
 | `@media (max-width: 600px) { … header:not(.has-transparent-header):has(> [data-sticky-on-scroll-up]) { top: 0 } }` (`css/header.css`) | The **Ollie theme** ships this exact reset already, but at specificity (0,1,1); its own base rule `body:not(.wp-admin) header:has(> .is-position-sticky)` (0,2,2) outweighs it, so the reset never applies and the solid sticky header stays 46px low at ≤600px. | The theme gives its own reset enough specificity to win. Check: a solid sticky header, ≤600px, logged in, scrolled — `top` computes to `0` with our rule removed. Then delete our `@media` block. |
 | `transition-property: transform, background-color, box-shadow` (`css/header.css`) | **Ollie Pro** writes `transition: transform …` as a *shorthand*, which resets any transition list a later stylesheet sets — so a naïve fade declaration would kill Ollie Pro's slide. | Only *simplifiable*, not removable: the transparent fade needs `background-color` and `box-shadow` in the list regardless. If Ollie Pro moves to `transition-*` longhands, the shorthand-reset hazard (and the caution around it) disappears, but keep declaring the property list. |
-| `transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), …` on the mega menu panel (`css/header.css`) | Not a bug — a **hard-coded copy of Ollie Pro's sticky-slide timing** (`0.3s cubic-bezier(0.4, 0, 0.2, 1)`), because CSS cannot read another element's transition timing and the panel's fade must match the header's. The number will drift out of sync if Ollie Pro retimes its slide. | Only *simplifiable*, never removable while a mega menu can open over a transparent header: the panel must fade on the header's timing regardless. If Ollie Pro ever exposes its sticky duration/easing as a CSS custom property, read that instead of duplicating the constant. Until then, if Ollie Pro's slide timing changes, change this to match (both places). |
+| `:not(.is-away) { transform: none }`, `.is-away`, `z-index: 100 !important` (`css/header.css`), and the slide half of `js/header.js` | **Ollie Pro** hides at a fixed 100px whatever the header's height, knows nothing of focus or open panels, and writes `z-index: -1` inline once hidden. Tabbing into a hidden header leaves the focus off-screen. | Ollie Pro hides past the header's own height, holds it while a panel is open or `:focus-visible` is inside, and brings it back on focus. Check all three with the rules removed, then delete them and keep only the appearance half of `header.js`, reading `is-sticky-hidden`. |
 
 ## The JS kludge (replace with pure CSS when browsers catch up)
 
@@ -32,16 +32,14 @@ body:not(.wp-admin) header.has-transparent-header {
 
 When you switch: delete `js/admin-bar-offset.js`, its enqueue in `Plugin.php` (the `is_admin_bar_showing()` block), and the `--kntnt-admin-bar-offset` variable; change the transparent rule's `top` to the `anchor()` form above.
 
-`js/mega-menu-offset.js`, and the `top: var(--kntnt-mega-menu-top, …) !important` it feeds on the mega menu panel, is the **same kind of kludge**. It exists only because CSS cannot read the header's rendered bottom edge, which the panel needs so it can hang flush instead of overlapping the header and flashing a bright band during the fade.
+`js/mega-menu-offset.js`, and the `top: var(--kntnt-mega-menu-top, …) !important` it feeds on the mega menu panel, is the **same kind of kludge**. It exists only because CSS cannot read the header's rendered bottom edge, which the panel needs so it can hang flush instead of overlapping the header.
 
 It too is replaceable *whole* by CSS anchor positioning — anchor the panel to the header group's bottom:
 
 ```css
-header.has-transparent-header > .wp-block-group { anchor-name: --kntnt-header; }
-@media (min-width: 600px) {
-  header.has-transparent-header .wp-block-ollie-mega-menu__menu-container {
-    top: anchor(--kntnt-header bottom) !important;
-  }
+header > .wp-block-group[data-sticky-on-scroll-up="true"] { anchor-name: --kntnt-header; }
+header:has(> .wp-block-group[data-sticky-on-scroll-up="true"]) .wp-block-ollie-mega-menu__menu-container {
+  top: anchor(--kntnt-header bottom) !important;
 }
 ```
 

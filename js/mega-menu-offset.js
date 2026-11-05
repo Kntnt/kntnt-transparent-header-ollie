@@ -1,16 +1,13 @@
 /**
- * Hangs the mega menu panel from the transparent header's rendered bottom edge.
+ * Hangs the mega menu panel from the sticky header's rendered bottom edge.
  *
- * Ollie Menu Designer opens a desktop mega menu as a `position: absolute` panel
- * whose `top` it measures from the nav item the menu belongs to (the block's
- * Top spacing setting), written as an inline style by the block's own script.
- * The nav item sits inside the header's vertical padding, so that top lands a
- * little above the header's bottom edge: the panel and the header overlap by a
- * narrow band. Both carry the same colour, so during this plugin's transparent-
- * to-solid fade the two semi-transparent copies composite to something brighter
- * than either – a bright band flashing across the header's lower edge for the
- * length of the fade. Meeting the two edge-to-edge removes the overlap, and
- * with it the band.
+ * Ollie Menu Designer opens a mega menu as a `position: absolute` panel whose
+ * `top` it measures from the nav item the menu belongs to (the block's Top
+ * spacing setting), written as an inline style by the block's own script and
+ * cleared on narrow screens. The nav item sits inside the header's vertical
+ * padding, so that top lands a little above the header's bottom edge, and at
+ * the very top of the header on a phone, covering it. Meeting the two
+ * edge-to-edge removes the overlap at every width.
  *
  * The correct top is the header's bottom edge, which depends on the header's
  * padding and where the nav item sits within it – per-site, per-design, and
@@ -30,18 +27,18 @@
  * menu-ollie) read the corrected edge: that plugin measures the panel's live
  * top ~100ms after the menu opens, well after this has run.
  *
- * Desktop only. Ollie's mobile menu is a `position: fixed` full-screen overlay
- * with its own scroll and its own `top`; repositioning it would fight Ollie, so
- * a fixed panel is skipped.
+ * Ollie's full-screen mobile overlay is a `position: fixed` panel with its own
+ * scroll and its own `top`; repositioning it would fight Ollie, so a fixed
+ * panel is skipped.
  */
 (() => {
 
     'use strict';
 
     // The sticky group carries the header's background, so its bottom edge is
-    // the colour boundary the panel must meet. Every page loads this script, but
-    // only a transparent header has anything to position against.
-    const headerGroup = document.querySelector('header.has-transparent-header > .wp-block-group');
+    // the colour boundary the panel must meet. Every page loads this script,
+    // but only a sticky header has anything to position against.
+    const headerGroup = document.querySelector('header > .wp-block-group[data-sticky-on-scroll-up="true"]');
 
     if (!headerGroup) {
         return;

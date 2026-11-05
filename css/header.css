@@ -1,12 +1,14 @@
 /**
  * Mechanism only – no styling of its own, no design opinions.
  *
- * Sticky, hide-on-scroll-down and show-on-scroll-up are the theme's and Ollie
- * Pro's job. This file adds what they have no concept of, plus two fixes.
+ * Sticky is the theme's and Ollie Pro's job. When the header slides away and
+ * how it looks over a hero is this plugin's: js/header.js decides, and this
+ * file applies it.
  *
  * The public contract is two classes:
  *   .has-transparent-header  you add it to the header template part
- *   .is-scrolled             this plugin adds it once the page is scrolled
+ *   .is-scrolled             this plugin adds it once the header is opaque with
+ *                            page content under it
  *
  * The transparent state is the ABSENCE of `is-scrolled`, never a class of its
  * own. That is deliberate: a JavaScript-applied class cannot exist at first
@@ -25,6 +27,35 @@
    band shows as a strip of header hanging at the top of the screen. */
 .wp-block-group[data-sticky-on-scroll-up="true"] {
   --sticky-full-offset: var(--wp-admin--admin-bar--height, 0px);
+}
+
+/* The plugin decides when the header slides away, because Ollie Pro's script
+   hides at a fixed 100px and knows nothing of focus or open panels. That script
+   cannot be switched off without switching off the toggle this plugin hangs on,
+   so its classes are made inert instead. `none` rather than Ollie Pro's
+   translateY(0), which would make the group the containing block of every fixed
+   element inside it. The selectors outrank Ollie Pro's by the `header` tag. */
+header > .wp-block-group[data-sticky-on-scroll-up="true"]:not(.is-away) {
+  transform: none;
+}
+
+header > .wp-block-group[data-sticky-on-scroll-up="true"].is-away {
+  transform: translateY(calc(-100% - var(--sticky-full-offset, 0px)));
+}
+
+/* Ollie Pro's script also sets `z-index: -1` inline on the header once its own
+   hide has finished. Its idea of hidden is no longer the plugin's: a header
+   brought back by focus would sit behind the page. `!important` is unavoidable
+   against an inline style, and the 100 is the theme's own sticky rule's. */
+body:not(.wp-admin) header:has(> .wp-block-group[data-sticky-on-scroll-up="true"]) {
+  z-index: 100 !important;
+}
+
+/* Keep focus and anchor targets out from under the header (WCAG 2.4.11). The
+   script publishes how much of the window the header covers, which is nothing
+   while it is slid away. */
+html {
+  scroll-padding-top: var(--kntnt-header-visible-height, 0px);
 }
 
 /* Sit the header flush at the top once the admin bar has scrolled away. Ollie
@@ -47,13 +78,14 @@
 }
 
 /* Fade between transparent and solid instead of snapping. Ollie Pro transitions
-   only `transform`, so background-color and box-shadow would flip in one frame.
+   only `transform`, so background, shadow and text colour would flip in one
+   frame.
    Override ONLY transition-property, never the `transition` shorthand: the
    shorthand resets Ollie Pro's transform transition and makes the header snap
    instead of slide. Duration and timing are inherited from Ollie Pro's rule,
    so the fade and the slide stay in step by construction. */
 .wp-block-group[data-sticky-on-scroll-up="true"].is-position-sticky {
-  transition-property: transform, background-color, box-shadow;
+  transition-property: transform, background-color, box-shadow, color;
 }
 
 /* Take the header out of the flow so the hero starts at the top of the
@@ -81,75 +113,33 @@ body:not(.wp-admin) header.has-transparent-header {
   top: var(--kntnt-admin-bar-offset, var(--wp-admin--admin-bar--height, 0px));
 }
 
-/* The transparent state itself: no background, no shadow, until scrolled. This
-   is the default, so it is already correct in the first paint – no script
-   involved. The solid state needs no rule at all: once this stops matching, the
-   block's own editor-set background simply reappears. That is why this file
-   ships no styling of its own. `!important` is unavoidable – core emits the
-   block's preset background as:
+/* The transparent state itself: no background until scrolled. This is the
+   default, so it is already correct in the first paint – no script involved.
+   The solid state needs no rule at all: once this stops matching, the block's
+   own editor-set background simply reappears. That is why this file ships no
+   styling of its own. `!important` is unavoidable – core emits the block's
+   preset background as:
    `.has-<slug>-background-color { background-color: … !important }`.
 
-   An open disclosure inside the header (a mega menu, a mobile menu) drops the
-   header back to solid, so the panel hanging off it has a backdrop instead of
-   floating over the hero. Phrased as "nothing is open" rather than "something
-   is closed": the latter needs a closed element to exist, so a header with no
-   menu at all would never go transparent, and with several toggles one closed
-   one would be enough to keep it transparent while another stands open. */
-header.has-transparent-header > .wp-block-group:not(.is-scrolled):not(:has([aria-expanded="true"])) {
+   An open menu changes nothing here. The appearance follows the scroll position
+   alone, so a panel opening over a dark hero hangs under a dark bar. */
+header.has-transparent-header > .wp-block-group:not(.is-scrolled) {
   background-color: transparent !important;
+}
+
+/* The upper layer casts the shadow, so a sticky header casts none while no page
+   content lies under it. The shadow itself is whatever you set on the group. */
+header > .wp-block-group[data-sticky-on-scroll-up="true"]:not(.is-scrolled) {
   box-shadow: none !important;
 }
 
-/* Fade the mega menu panel in on the header's timing, not its own. Ollie Menu
-   Designer fades an opening panel's opacity in over ~100ms; this plugin fades
-   the header's background in over 300ms (inherited from Ollie Pro's sticky
-   slide – see the transition-property rule above). Over a transparent header
-   the two land at visibly different moments: the panel snaps in while the
-   header colour is still catching up behind it. Matching the panel's opacity
-   transition to the header's makes them read as one surface arriving together.
-
-   The 300ms and the easing are Ollie Pro's own, copied from its sticky rule
-   `.wp-block-group[data-sticky-on-scroll-up="true"] { transition: transform
-   0.3s cubic-bezier(0.4, 0, 0.2, 1) }`. CSS cannot read another element's
-   transition timing, so the constant has to be duplicated here; if Ollie Pro
-   ever retimes its slide, retime this to match. The header and the panel must
-   always share the number, or the mismatch returns.
-
-   The `visibility` step is Ollie's, kept because it carries the closed panel's
-   interactivity: on the way in it flips at once (delay 0s) so the panel is
-   usable immediately; on the way out it waits the whole fade (delay 0.3s) so
-   the panel stays visible while it fades rather than vanishing in one frame.
-   That is why the two states carry different visibility timing.
-
-   Scoped to `:not(.is-scrolled)`: the mismatch exists only while the header is
-   actually fading – transparent and turning solid. A scrolled, already-solid
-   header has no fade to match, so the panel keeps Ollie's snappier default.
-   Desktop only (`min-width: 600px`, Ollie's own desktop threshold): the mobile
-   menu is Ollie's full-screen overlay, not a panel hanging off the header, so
-   there is no header fade to sync it to. */
-@media (min-width: 600px) {
-  header.has-transparent-header > .wp-block-group:not(.is-scrolled) .wp-block-ollie-mega-menu__toggle ~ .wp-block-ollie-mega-menu__menu-container {
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.3s;
-  }
-
-  header.has-transparent-header > .wp-block-group:not(.is-scrolled) .wp-block-ollie-mega-menu__toggle[aria-expanded="true"] ~ .wp-block-ollie-mega-menu__menu-container {
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0s;
-  }
-}
-
 /* Hang the mega menu panel from the header's rendered bottom edge, so the two
-   surfaces meet instead of overlapping. Ollie Menu Designer opens a desktop
-   panel `position: absolute` with a `top` measured from the nav item it belongs
-   to (the block's Top spacing setting), written as an inline style by the
-   block's own script. Because that nav item sits inside the header's vertical
-   padding, the panel's top lands a little above the header's bottom edge and
-   the two overlap by a narrow band. Header and panel carry the same colour, so
-   where they overlap two semi-transparent copies of it composite to something
-   brighter than either (two layers at opacity a make 1 - (1 - a)^2, not a): a
-   bright band that flashes across the header's lower edge for the length of the
-   fade. Syncing the two fades (above) is what makes them semi-transparent at
-   the same instant and reveals the band; removing the overlap is what removes
-   it, at every point in the fade.
+   surfaces meet instead of overlapping. Ollie Menu Designer opens a panel
+   `position: absolute` with a `top` measured from the nav item it belongs to
+   (the block's Top spacing setting), written as an inline style by the block's
+   own script and cleared on narrow screens. That nav item sits inside the header's
+   vertical padding, so the panel's top lands a little above the header's bottom
+   edge, and at the very top of the header on a phone.
 
    The correct top is the header's bottom edge, which depends on the header's
    padding and where the nav item sits within it – both per-site, per-design and
@@ -161,11 +151,42 @@ header.has-transparent-header > .wp-block-group:not(.is-scrolled):not(:has([aria
    write timing – the script rewrites its inline `top` on resize, but never
    touches this custom property, so the stylesheet keeps winning. The `100%`
    fallback hangs the panel from the nav item's own bottom before the script
-   runs – near the edge, never overlapping into the band. Desktop only: the
-   mobile menu is Ollie's `position: fixed` full-screen overlay with its own
-   `top`, which this must not fight (the script skips it too). */
-@media (min-width: 600px) {
-  header.has-transparent-header .wp-block-ollie-mega-menu__menu-container {
-    top: var(--kntnt-mega-menu-top, 100%) !important;
+   runs – near the edge, never overlapping into the header.
+
+   Ollie's full-screen mobile overlay is `position: fixed` with its own
+   `top: 0 !important` at (0,3,0), which outranks this (0,2,1), and the script
+   skips it too. */
+header:has(> .wp-block-group[data-sticky-on-scroll-up="true"]) .wp-block-ollie-mega-menu__menu-container {
+  top: var(--kntnt-mega-menu-top, 100%) !important;
+}
+
+/* Without motion the slide and the fade happen at once. Only the duration is
+   touched: the `transition` shorthand here would reset Ollie Pro's rule. The
+   script reads this value, so it also learns that the slide takes no time. */
+@media (prefers-reduced-motion: reduce) {
+  header > .wp-block-group[data-sticky-on-scroll-up="true"] {
+    transition-duration: 0s;
+  }
+}
+
+/* On paper the header is the page's first part and nothing in it can be used.
+   The script turns on the opaque appearance before printing. */
+@media print {
+  html {
+    scroll-padding-top: 0;
+  }
+
+  body:not(.wp-admin) header:has(> .wp-block-group[data-sticky-on-scroll-up="true"]) {
+    position: static;
+  }
+
+  header > .wp-block-group[data-sticky-on-scroll-up="true"],
+  header > .wp-block-group[data-sticky-on-scroll-up="true"].is-away {
+    position: static;
+    transform: none;
+  }
+
+  header:has(> .wp-block-group[data-sticky-on-scroll-up="true"]) :is(nav, button, dialog, .wp-block-button, .wp-block-search, .wp-block-ollie-mega-menu) {
+    display: none;
   }
 }
