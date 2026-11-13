@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+
+- The editor canvas shows a transparent header over the content, as visitors see it at the top of the page. The header scrolls with the canvas so it does not cover edits.
+
 ## [0.4.0] – 2026-11-05
 
 ### Changed
