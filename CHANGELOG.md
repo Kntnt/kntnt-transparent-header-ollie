@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.5.0] – 2026-11-17
+
+### Added
+
+- The editor canvas shows a transparent header over the content, as visitors see it at the top of the page. The header scrolls with the canvas so it does not cover edits.
+
 ## [0.4.0] – 2026-11-05
 
 ### Changed
@@ -59,7 +65,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Self-updating from the project's GitHub releases: the plugin appears under *Dashboard → Updates* like any other, checking the repository named by its own `Plugin URI` header at most once every six hours. A release is only offered when it carries a ZIP asset served from GitHub's own download hosts, so a tampered header cannot redirect the update installer at an attacker's package. Update checks run under every theme, unlike the header feature – a site parked on another theme must not rot on an old version.
 - `build-release-zip.sh`, which builds a release zip containing only runtime files, and can create or update the GitHub release and upload the asset. The asset name carries no version segment, keeping the `latest/download` URL stable.
 
-[Unreleased]: https://github.com/Kntnt/kntnt-transparent-header-ollie/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Kntnt/kntnt-transparent-header-ollie/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Kntnt/kntnt-transparent-header-ollie/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Kntnt/kntnt-transparent-header-ollie/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Kntnt/kntnt-transparent-header-ollie/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Kntnt/kntnt-transparent-header-ollie/releases/tag/v0.2.0

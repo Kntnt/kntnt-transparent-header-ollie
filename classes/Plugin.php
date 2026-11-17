@@ -201,6 +201,7 @@ final class Plugin {
 		// so the default priority would put this stylesheet first and silently
 		// lose the cascade.
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_assets' ], 20 );
+		add_action( 'enqueue_block_assets', [ $this, 'enqueue_editor_assets' ] );
 
 	}
 
@@ -283,6 +284,31 @@ final class Plugin {
 				[ 'in_footer' => true ],
 			);
 		}
+
+	}
+
+	/**
+	 * Shows the header's top state inside the editor canvas only.
+	 *
+	 * Block assets reach the iframe; frontend assets retain their own hook.
+	 *
+	 * @since 0.5.0
+	 *
+	 * @return void
+	 */
+	public function enqueue_editor_assets(): void {
+
+		// This stylesheet describes an editable canvas, never a visitor page.
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			self::HANDLE . '-editor',
+			plugins_url( 'css/editor.css', self::$plugin_file ),
+			[],
+			self::asset_version( 'css/editor.css' ),
+		);
 
 	}
 

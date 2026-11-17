@@ -1,0 +1,12 @@
+/* Show the top-of-page state without a fixed header covering edits on scroll. */
+.editor-styles-wrapper header.has-transparent-header {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 20;
+}
+.editor-styles-wrapper header.has-transparent-header > .wp-block-group:not(.is-scrolled) {
+	background-color: transparent !important;
+	border-color: transparent !important;
+}
