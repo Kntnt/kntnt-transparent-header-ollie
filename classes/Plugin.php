@@ -292,7 +292,7 @@ final class Plugin {
 	 *
 	 * Block assets reach the iframe; frontend assets retain their own hook.
 	 *
-	 * @since unreleased
+	 * @since 0.5.0
 	 *
 	 * @return void
 	 */
